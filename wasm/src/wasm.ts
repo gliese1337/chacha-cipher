@@ -15,19 +15,26 @@ export class ChaCha {
     private rounds: number,
   ) {}
 
-  public static async init(key: Uint8Array, kbits: 128 | 256, rounds: 8 | 12 | 20 = 20, iv?: Uint8Array): Promise<ChaCha> {
+  public static async init(key: Uint8Array, rounds: 8 | 12 | 20 = 20, iv?: Uint8Array): Promise<ChaCha> {
     const module = await modulep;
     const instance = await WebAssembly.instantiate(module);
     const { memory, next_bytes } = instance.exports;
 
     let k: number;
     let c: Uint8Array;
-    if (kbits == 256) {
-      k = 16;
-      c = sigma;
-    } else {
-      k = 0;
-      c = tau;
+
+    const kbits = key.length * 8;
+    switch (kbits) {
+      case 256:
+        k = 16;
+        c = sigma;
+        break;
+      case 128:
+        k = 0;
+        c = tau;
+        break;
+      default:
+        throw new Error("Unsupported Key Size");
     }
 
     const membuf = (memory as unknown as WebAssembly.Memory).buffer;

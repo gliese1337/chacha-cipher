@@ -61,15 +61,21 @@ const max32bit = 2 ** 32;
 export class ChaCha {
   private ctx: Uint32Array;
 
-  constructor(key: Uint8Array, kbits: 128 | 256, private rounds: 8 | 12 | 20 = 20, iv?: Uint8Array) {
+  constructor(key: Uint8Array, private rounds: 8 | 12 | 20 = 20, iv?: Uint8Array) {
     let k: number;
     let c: Uint8Array;
-    if (kbits == 256) { /* recommended */
-      k = 16;
-      c = sigma;
-    } else { /* kbits == 128 */
-      k = 0;
-      c = tau;
+    const kbits = key.length * 8;
+    switch (kbits) {
+      case 256:
+        k = 16;
+        c = sigma;
+        break;
+      case 128:
+        k = 0;
+        c = tau;
+        break;
+      default:
+        throw new Error("Unsupported Key Size");
     }
 
     const ctx = new Uint32Array(16);
