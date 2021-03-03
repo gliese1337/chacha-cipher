@@ -88,11 +88,26 @@
     (local $t i32)
     (local $j i32)
 
+    ;; Copy context into scratch space
     i32.const 0
-    i32.const 128
-    i32.const 64
-    memory.copy
+    local.set $j
+    (loop
+      ;; Move 8 bytes at a time
+      local.get $j
+      i64.load
+      (i32.add (local.get $j) (i32.const 128))
+      i64.store
+
+      ;; Increment by 8 bytes
+      (i32.add (local.get $j) (i32.const 8))
+      local.tee $j
+      i32.const 64
+      i32.eq
+      br_if 1
+      br 0
+    )
   
+    ;; Perform rounds on data in scratch space
     (loop
       i32.const 128
       i32.const 132
@@ -143,56 +158,62 @@
       i32.const 142
       call $quarterround
 
-      local.get $rounds
-      i32.const 2
-      i32.sub
+      (i32.sub (local.get $rounds) (i32.const 2))
       local.tee $rounds
       i32.eqz
       br_if 1
       br 0
     )
-    
-    i32.const 16
+
+    ;; Copy scratch space to output in little-endian order
+   
+    i32.const 0
     local.set $rounds
 
     i32.const 64 ;; output starts at 64
     local.set $j
 
     (loop
+      ;; Add context back into
+      ;; scratch data as we go
       (i32.add
-        (i32.load (i32.add
-          (i32.const 128) ;; scratch space starts at 128
-          (local.get $rounds)))
+        (i32.load
+          (i32.add
+            (i32.const 128) ;; scratch space starts at 128
+            (local.get $rounds)))
         (i32.load (local.get $rounds)))
 
+      ;; store the lowest byte first
       local.tee $t
       local.get $j
       i32.store8
 
-      local.get $t
-      i32.const 8
-      i32.shr_u
+      ;; shift t and inc j to store the next byte
+      (i32.shr_u (local.get $t) (i32.const 8))
       (i32.add (local.get $j) (i32.const 1))
       local.tee $j
       i32.store8
 
-      local.get $t
-      i32.const 16
-      i32.shr_u
+      ;; shift t and inc j to store the next byte
+      (i32.shr_u (local.get $t) (i32.const 16))
       (i32.add (local.get $j) (i32.const 1))
       local.tee $j
       i32.store8
       
-      local.get $t
-      i32.const 24
-      i32.shr_u
+      ;; shift t and inc j to store the next byte
+      (i32.shr_u (local.get $t) (i32.const 24))
       (i32.add (local.get $j) (i32.const 1))
       local.tee $j
       i32.store8
 
-      (i32.sub (local.get $rounds) (i32.const 1))
+      ;; inc j to set up for next iteration
+      (i32.add (local.get $j) (i32.const 1))
+      local.set $j
+
+      (i32.add (local.get $rounds) (i32.const 1))
       local.tee $rounds
-      i32.eqz
+      i32.const 16
+      i32.eq
       br_if 1
       br 0
     )

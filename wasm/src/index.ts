@@ -1,6 +1,5 @@
 
-const buffer = new ArrayBuffer(0); //readFileSync("./main.wasm");
-const modulep = WebAssembly.compile(buffer);
+import modulep from './wasm_loader';
 
 const sigma = new Uint8Array(Array.from("expand 32-byte k", c => c.charCodeAt(0)));
 const tau = new Uint8Array(Array.from("expand 16-byte k", c => c.charCodeAt(0)));

@@ -9,10 +9,10 @@
   ],
   "scripts": {
     "test": "mocha -r ts-node/register test/**/*-test.ts",
-    "build": "tsc",
+    "build": "ts-node build_wasm.ts && tsc",
     "lint": "eslint . --ext .ts --fix",
     "minify": "jsmin -o bin/index.min.js bin/index.js && del bin\\index.js && move bin\\index.min.js bin\\index.js",
-    "prepare": "tsc && npm run minify"
+    "prepare": "npm run build && npm run minify"
   },
   "keywords": [
     "chacha",
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/chai": "^4.2.14",
     "@types/mocha": "^8.0.4",
+    "@types/node": "^14.14.31",
     "@typescript-eslint/eslint-plugin": "^4.10.0",
     "@typescript-eslint/parser": "^4.10.0",
     "chai": "^4.2.0",
@@ -30,6 +31,7 @@
     "jsmin": "^1.0.1",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "wabt": "^1.0.20"
   }
 }
