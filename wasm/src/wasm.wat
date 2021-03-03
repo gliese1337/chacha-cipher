@@ -83,12 +83,9 @@
         (i32.const 7)))
   )
 
-  (func $next_bytes
-    (param $rounds i32)
-    (local $t i32)
+  (func $copy_ctx ;; Copy context into scratch space
     (local $j i32)
 
-    ;; Copy context into scratch space
     (local.set $j (i32.const 0))
     (block
       (loop
@@ -108,60 +105,56 @@
         (br 0)
       )
     )
-  
-    ;; Perform rounds on data in scratch space
-    (block
-      (loop
-        (call $quarterround
-          (i32.const 128) (i32.const 132)
-          (i32.const 136) (i32.const 140))
-        (call $quarterround
-          (i32.const 129) (i32.const 133)
-          (i32.const 137) (i32.const 141))
-        (call $quarterround
-          (i32.const 130) (i32.const 134)
-          (i32.const 138) (i32.const 142))
-        (call $quarterround
-          (i32.const 131) (i32.const 135)
-          (i32.const 139) (i32.const 143))
-          
-        (call $quarterround
-          (i32.const 128) (i32.const 133)
-          (i32.const 138) (i32.const 143))
-        (call $quarterround
-          (i32.const 129) (i32.const 134)
-          (i32.const 139) (i32.const 140))
-        (call $quarterround
-          (i32.const 130) (i32.const 135)
-          (i32.const 136) (i32.const 141))
-        (call $quarterround
-          (i32.const 131) (i32.const 132)
-          (i32.const 137) (i32.const 142))
+  )
+  (func $double_round
+    (call $quarterround
+      (i32.const 128) (i32.const 132)
+      (i32.const 136) (i32.const 140))
+    (call $quarterround
+      (i32.const 129) (i32.const 133)
+      (i32.const 137) (i32.const 141))
+    (call $quarterround
+      (i32.const 130) (i32.const 134)
+      (i32.const 138) (i32.const 142))
+    (call $quarterround
+      (i32.const 131) (i32.const 135)
+      (i32.const 139) (i32.const 143))
+      
+    (call $quarterround
+      (i32.const 128) (i32.const 133)
+      (i32.const 138) (i32.const 143))
+    (call $quarterround
+      (i32.const 129) (i32.const 134)
+      (i32.const 139) (i32.const 140))
+    (call $quarterround
+      (i32.const 130) (i32.const 135)
+      (i32.const 136) (i32.const 141))
+    (call $quarterround
+      (i32.const 131) (i32.const 132)
+      (i32.const 137) (i32.const 142))
+  )
 
-        (br_if 1
-          (i32.eqz
-            (local.tee $rounds
-              (i32.sub (local.get $rounds) (i32.const 2)))))
-        (br 0)
-      )
-    )
+  (func $copy_out
+    (local $i i32)
+    (local $j i32)
+    (local $t i32)
 
     ;; Copy scratch space to output in little-endian order   
-    (local.set $rounds (i32.const 0))
 
     ;; output starts at 64
     (local.set $j (i32.const 64))
+    (local.set $i (i32.const 0))
     (block
       (loop
         ;; Add context back into
         ;; scratch data as we go
         (local.set $t
           (i32.add
+            (i32.load (local.get $i))
             (i32.load
               (i32.add
                 (i32.const 128) ;; scratch space starts at 128
-                (local.get $rounds)))
-            (i32.load (local.get $rounds))))
+                (local.get $i)))))
 
         (i32.store8
           (local.get $j)
@@ -179,27 +172,29 @@
           (local.tee $j (i32.add (local.get $j) (i32.const 1)))
           (i32.shr_u (local.get $t) (i32.const 24)))
 
-        ;; j++
         (local.set $j (i32.add (local.get $j) (i32.const 1)))
 
         (br_if 1
           (i32.eq
-            (i32.const 16)
-            (local.tee $rounds
-              (i32.add (local.get $rounds) (i32.const 1)))))
+            (i32.const 64)
+            (local.tee $i ;; move 4 bytes at a time
+              (i32.add (local.get $i) (i32.const 4)))))
         (br 0)
       )
     )
-    
+  )
+
+  (func $inc_ctr
+    (local $t i32)  
     (i32.store
       (i32.const 48)
-      (local.tee $j
+      (local.tee $t
         (i32.add
           (i32.load (i32.const 48))
           (i32.const 1))))
 
     (block
-      (br_if 1 (i32.ne (i32.const 0) (local.get $j)))
+      (br_if 1 (i32.ne (i32.const 0) (local.get $t)))
       (i32.store
         (i32.const 52)
         (i32.add
@@ -207,5 +202,30 @@
           (i32.load (i32.const 52))))
     )
   )
+
+  (func $next_bytes (param $rounds i32)
+
+    ;; Copy context into scratch space
+    (call $copy_ctx)
+  
+    ;; Perform rounds on data in scratch space
+    (block
+      (loop
+        (call $double_round)
+        (br_if 1 (i32.eqz
+          (local.tee $rounds
+            (i32.sub (local.get $rounds) (i32.const 2)))))
+        (br 0)
+      )
+    )
+   
+    (call $copy_out)
+    (call $inc_ctr)
+  )
+
+  (export "copy_ctx" (func $copy_ctx))
+  (export "double_round" (func $double_round))
+  (export "copy_out" (func $copy_out))
+  (export "inc_ctr" (func $inc_ctr))
   (export "next_bytes" (func $next_bytes))
 )
