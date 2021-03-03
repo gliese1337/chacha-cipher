@@ -16,6 +16,7 @@
   "exclude": [
     "node_modules",
     "test/**/*",
-    "build_wasm.ts"
+    "build_wasm.ts",
+    "bin"
   ]
 }

@@ -7,12 +7,18 @@ const tau = new Uint8Array(Array.from("expand 16-byte k", c => c.charCodeAt(0)))
 const max32bit = 2 ** 32;
 
 export class ChaCha {
+  public bytes: Uint8Array;
+  public memory: Uint8Array;
+
   private constructor(
     private ctx: Uint32Array,
-    public bytes: Uint8Array,
+    mem: ArrayBuffer,
     private shuffle: (rounds: number) => void,
     private rounds: number,
-  ) {}
+  ) {
+    this.bytes = new Uint8Array(mem, 64, 64);
+    this.memory = new Uint8Array(mem, 0, 192);
+  }
 
   public static async init(key: Uint8Array, rounds: 8 | 12 | 20 = 20, iv?: Uint8Array): Promise<ChaCha> {
     const module = await modulep;
@@ -55,7 +61,7 @@ export class ChaCha {
     
     const cc = new ChaCha(
       ctx,
-      new Uint8Array(membuf, 64, 64),
+      membuf,
       next_bytes as () => void,
       rounds,
     );
@@ -75,6 +81,7 @@ export class ChaCha {
 
   next_bytes(output?: Uint8Array) {
     this.shuffle(this.rounds);
+    console.log(this.memory);
     if (output) output.set(this.bytes);
     return this.bytes;
   }

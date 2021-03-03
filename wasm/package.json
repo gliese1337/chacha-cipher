@@ -8,7 +8,7 @@
     "bin/index.d.ts"
   ],
   "scripts": {
-    "test": "mocha -r ts-node/register test/**/*-test.ts",
+    "test": "npm run build && mocha -r ts-node/register test/**/*-test.ts",
     "build": "ts-node build_wasm.ts && tsc",
     "lint": "eslint . --ext .ts --fix",
     "minify": "jsmin -o bin/index.min.js bin/index.js && del bin\\index.js && move bin\\index.min.js bin\\index.js",

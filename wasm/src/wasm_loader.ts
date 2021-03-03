@@ -14,7 +14,7 @@ const low_map: {[key: string]: number } = {
   c: 0x0c, d: 0x0d, e: 0x0e, f: 0x0f,
 }
 
-const bytes = new Uint8Array(hex.length * 2);
+const bytes = new Uint8Array(hex.length / 2);
 for (let i = 0, j = 0; j < hex.length; i++, j+=2) {
   bytes[i] = high_map[hex[j]] | low_map[hex[j+1]];
 }
