@@ -6,18 +6,29 @@ const tau = new Uint8Array(Array.from("expand 16-byte k", c => c.charCodeAt(0)))
 
 const max32bit = 2 ** 32;
 
+const digits = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
+function toHex(b: Uint8Array) {
+  const a: string[] = [];
+  for (const n of b) {
+    a.push(digits[n >>> 4], digits[n & 0xf]);
+  }
+  return a.join('');
+}
+
 export class ChaCha {
   public bytes: Uint8Array;
-  public memory: Uint8Array;
+  public scratch: Uint8Array;
+  public ctx8: Uint8Array;
 
   private constructor(
-    private ctx: Uint32Array,
+    public ctx: Uint32Array,
     mem: ArrayBuffer,
     private shuffle: (rounds: number) => void,
     private rounds: number,
   ) {
+    this.ctx8 = new Uint8Array(mem, 0, 64)
     this.bytes = new Uint8Array(mem, 64, 64);
-    this.memory = new Uint8Array(mem, 0, 192);
+    this.scratch = new Uint8Array(mem, 128, 64);
   }
 
   public static async init(key: Uint8Array, rounds: 8 | 12 | 20 = 20, iv?: Uint8Array): Promise<ChaCha> {
@@ -80,8 +91,13 @@ export class ChaCha {
   }
 
   next_bytes(output?: Uint8Array) {
+    console.log("PRECTX", toHex(this.ctx8));
+    console.log("PREOUT", toHex(this.bytes));
+    console.log("PREWRK", toHex(this.scratch));
     this.shuffle(this.rounds);
-    console.log(this.memory);
+    console.log("PSTCTX", toHex(this.ctx8));
+    console.log("PSTOUT", toHex(this.bytes));
+    console.log("PSTWRK", toHex(this.scratch));
     if (output) output.set(this.bytes);
     return this.bytes;
   }
