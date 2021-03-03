@@ -1,13 +1,3 @@
-/*
-const digits = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
-function toHex(b: Uint8Array) {
-  const a: string[] = [];
-  for (const n of b) {
-    a.push(digits[n >>> 4], digits[n & 0xf]);
-  }
-  return a.join('');
-}*/
-
 function QUARTERROUND(x: Uint32Array, a: number, b: number, c: number, d: number) {
   let t: number;
   let xa: number;

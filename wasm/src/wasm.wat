@@ -68,30 +68,46 @@
   )
   (func $double_round
     (call $quarter_round
-      (i32.const 128) (i32.const 132)
-      (i32.const 136) (i32.const 140))
+      ;; Indices: 0, 4, 8, 12
+      ;; Offsets: 0, 16, 32, 48 + 128
+      (i32.const 128) (i32.const 144)
+      (i32.const 160) (i32.const 176))
     (call $quarter_round
-      (i32.const 129) (i32.const 133)
-      (i32.const 137) (i32.const 141))
+      ;; Indices: 1, 5, 9, 13
+      ;; Offsets: 4, 20, 36, 52 + 128
+      (i32.const 132) (i32.const 148)
+      (i32.const 164) (i32.const 180))
     (call $quarter_round
-      (i32.const 130) (i32.const 134)
-      (i32.const 138) (i32.const 142))
+      ;; Indices: 2, 6, 10, 14
+      ;; Offsets: 8, 24, 40, 56 + 128
+      (i32.const 136) (i32.const 152)
+      (i32.const 168) (i32.const 184))
     (call $quarter_round
-      (i32.const 131) (i32.const 135)
-      (i32.const 139) (i32.const 143))
+      ;; Indices: 3, 7, 11, 15
+      ;; Offsets: 12, 28, 44, 60 + 128
+      (i32.const 140) (i32.const 156)
+      (i32.const 172) (i32.const 188))
       
     (call $quarter_round
-      (i32.const 128) (i32.const 133)
-      (i32.const 138) (i32.const 143))
+      ;; Indices: 0, 5, 10, 15
+      ;; Offsets: 0, 20, 40, 60 + 128
+      (i32.const 128) (i32.const 148)
+      (i32.const 168) (i32.const 188))
     (call $quarter_round
-      (i32.const 129) (i32.const 134)
-      (i32.const 139) (i32.const 140))
+      ;; Indices: 1, 6, 11, 12
+      ;; Offsets: 4, 24, 44, 48 + 128
+      (i32.const 132) (i32.const 152)
+      (i32.const 172) (i32.const 176))
     (call $quarter_round
-      (i32.const 130) (i32.const 135)
-      (i32.const 136) (i32.const 141))
+      ;; Indices: 2, 7, 8, 13
+      ;; Offsets: 8, 28, 32, 52 + 128
+      (i32.const 136) (i32.const 156)
+      (i32.const 160) (i32.const 180))
     (call $quarter_round
-      (i32.const 131) (i32.const 132)
-      (i32.const 137) (i32.const 142))
+      ;; Indices: 3, 4, 9, 14
+      ;; Offsets: 12, 16, 36, 56 + 128
+      (i32.const 140) (i32.const 144)
+      (i32.const 164) (i32.const 184))
   )
 
   (func $copy_out
