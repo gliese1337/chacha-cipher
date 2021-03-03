@@ -1,21 +1,37 @@
+/*
+const digits = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
+function toHex(b: Uint8Array) {
+  const a: string[] = [];
+  for (const n of b) {
+    a.push(digits[n >>> 4], digits[n & 0xf]);
+  }
+  return a.join('');
+}*/
+
 function QUARTERROUND(x: Uint32Array, a: number, b: number, c: number, d: number) {
   let t: number;
+  let xa: number;
+  let xb: number;
+  let xc: number;
+  let xd: number;
 
-  x[a] = x[a] + x[b];
-  t = x[d] ^ x[a];
-  x[d] = t << 16 | t >>> 16;
+  xb = x[b];
 
-  x[c] = x[c] + x[d];
-  t = x[b] ^ x[c];
-  x[b] = t << 12 | t >>> 20;
+  t = x[d] ^ (xa = x[a] + xb);
+  xd = t << 16 | t >>> 16;
+
+  t = xb ^ (xc = x[c] + xd);
+  xb = t << 12 | t >>> 20;
   
-  x[a] = x[a] + x[b];
-  t = x[d] ^ x[a];
-  x[d] = t << 8 | t >>> 24;
+  t = xd ^ (xa += xb);
+  xd = t << 8 | t >>> 24;
   
-  x[c] = x[c] + x[d];
-  t = x[b] ^ x[c];
+  t = xb ^ (xc += xd);
   x[b] = t << 7 | t >>> 25;
+
+  x[a] = xa;
+  x[c] = xc;
+  x[d] = xd;
 }
 
 const x = new Uint32Array(16);

@@ -3,86 +3,6 @@
   ;; ctx: 0 - 63
   ;; output: 64 - 127
   ;; scratch: 128 - 192
-  (func $quarterround
-    (param $a i32) ;; offset by 128
-    (param $b i32) ;; offset by 128
-    (param $c i32) ;; offset by 128
-    (param $d i32) ;; offset by 128
-    (local $t i32)
-
-    ;; x[a] = x[a] + x[b];
-    ;; t = x[d] ^ x[a];
-    ;; x[d] = t << 16 | t >>> 16;
-    (i32.store
-      (local.get $a)
-      (local.tee $t
-        (i32.add
-          (i32.load (local.get $a))
-          (i32.load (local.get $b)))))
-
-    (i32.store
-      (local.get $d)
-      (i32.rotl
-        (i32.xor
-          (i32.load (local.get $d))
-          (local.get $t))
-        (i32.const 16)))
-
-    ;; x[c] = x[c] + x[d];
-    ;; t = x[b] ^ x[c];
-    ;; x[b] = t << 12 | t >>> 20;
-    (i32.store
-      (local.get $c)
-      (local.tee $t
-        (i32.add
-          (i32.load (local.get $c))
-          (i32.load (local.get $d)))))
-
-    (i32.store
-      (local.get $b)
-      (i32.rotl
-        (i32.xor
-          (i32.load (local.get $b))
-          (local.get $t))
-        (i32.const 12)))
-
-    ;; x[a] = x[a] + x[b];
-    ;; t = x[d] ^ x[a];
-    ;; x[d] = t << 8 | t >>> 24;
-    (i32.store
-      (local.get $a)
-      (local.tee $t
-        (i32.add
-          (i32.load (local.get $a))
-          (i32.load (local.get $b)))))
-
-    (i32.store
-      (local.get $d)
-      (i32.rotl
-        (i32.xor
-          (i32.load (local.get $d))
-          (local.get $t))
-        (i32.const 8)))
-
-    ;; x[c] = x[c] + x[d];
-    ;; t = x[b] ^ x[c];
-    ;; x[b] = t << 7 | t >>> 25;
-    (i32.store
-      (local.get $c)
-      (local.tee $t
-        (i32.add
-          (i32.load (local.get $c))
-          (i32.load (local.get $d)))))
-
-    (i32.store
-      (local.get $b)
-      (i32.rotl
-        (i32.xor
-          (i32.load (local.get $b))
-          (local.get $t))
-        (i32.const 7)))
-  )
-
   (func $copy_ctx ;; Copy context into scratch space
     (local $j i32)
 
@@ -106,30 +26,70 @@
       )
     )
   )
+  (func $quarter_round
+    (param $a i32) ;; offset by 128
+    (param $b i32) ;; offset by 128
+    (param $c i32) ;; offset by 128
+    (param $d i32) ;; offset by 128
+    (local $xa i32)
+    (local $xb i32)
+    (local $xc i32)
+    (local $xd i32)
+
+    (local.set $xa (i32.load (local.get $a)))
+    (local.set $xb (i32.load (local.get $b)))
+    (local.set $xc (i32.load (local.get $c)))
+    (local.set $xd (i32.load (local.get $d)))
+
+    ;; x[a] = x[a] + x[b];
+    (local.set $xa (i32.add (local.get $xa) (local.get $xb)))
+    ;; x[d] = (x[d] ^ x[a]) rotl 16
+    (local.set $xd (i32.rotl (i32.const 16) (i32.xor (local.get $xd) (local.get $xa))))
+
+    ;; x[c] = x[c] + x[d];
+    (local.set $xc (i32.add (local.get $xc) (local.get $xd)))
+    ;; x[b] = (x[b] ^ x[c]) rotl 12
+    (local.set $xb (i32.rotl (i32.const 12) (i32.xor (local.get $xb) (local.get $xc))))
+
+    ;; x[a] = x[a] + x[b];
+    (local.set $xa (i32.add (local.get $xa) (local.get $xb)))
+    ;; x[d] = (x[d] ^ x[a]) rotl 8
+    (local.set $xd (i32.rotl (i32.const 8) (i32.xor (local.get $xd) (local.get $xa))))
+
+    ;; x[c] = x[c] + x[d];
+    (local.set $xc (i32.add (local.get $xc) (local.get $xd)))
+    ;; x[b] = (x[b] ^ x[c]) rotl 7
+    (local.set $xb (i32.rotl (i32.const 7) (i32.xor (local.get $xb) (local.get $xc))))
+
+    (i32.store (local.get $a) (local.get $xa))
+    (i32.store (local.get $b) (local.get $xb))
+    (i32.store (local.get $c) (local.get $xc))
+    (i32.store (local.get $d) (local.get $xd))
+  )
   (func $double_round
-    (call $quarterround
+    (call $quarter_round
       (i32.const 128) (i32.const 132)
       (i32.const 136) (i32.const 140))
-    (call $quarterround
+    (call $quarter_round
       (i32.const 129) (i32.const 133)
       (i32.const 137) (i32.const 141))
-    (call $quarterround
+    (call $quarter_round
       (i32.const 130) (i32.const 134)
       (i32.const 138) (i32.const 142))
-    (call $quarterround
+    (call $quarter_round
       (i32.const 131) (i32.const 135)
       (i32.const 139) (i32.const 143))
       
-    (call $quarterround
+    (call $quarter_round
       (i32.const 128) (i32.const 133)
       (i32.const 138) (i32.const 143))
-    (call $quarterround
+    (call $quarter_round
       (i32.const 129) (i32.const 134)
       (i32.const 139) (i32.const 140))
-    (call $quarterround
+    (call $quarter_round
       (i32.const 130) (i32.const 135)
       (i32.const 136) (i32.const 141))
-    (call $quarterround
+    (call $quarter_round
       (i32.const 131) (i32.const 132)
       (i32.const 137) (i32.const 142))
   )
@@ -224,6 +184,7 @@
   )
 
   (export "copy_ctx" (func $copy_ctx))
+  (export "quarter_round" (func $quarter_round))
   (export "double_round" (func $double_round))
   (export "copy_out" (func $copy_out))
   (export "inc_ctr" (func $inc_ctr))
