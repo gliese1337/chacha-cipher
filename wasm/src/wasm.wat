@@ -36,35 +36,42 @@
     (local $xc i32)
     (local $xd i32)
 
-    (local.set $xa (i32.load (local.get $a)))
-    (local.set $xb (i32.load (local.get $b)))
-    (local.set $xc (i32.load (local.get $c)))
-    (local.set $xd (i32.load (local.get $d)))
-
     ;; x[a] = x[a] + x[b];
-    (local.set $xa (i32.add (local.get $xa) (local.get $xb)))
     ;; x[d] = (x[d] ^ x[a]) rotl 16
-    (local.set $xd (i32.rotl (i32.const 16) (i32.xor (local.get $xd) (local.get $xa))))
+    (local.set $xd
+      (i32.rotl
+        (i32.xor  (i32.load (local.get $d)) 
+                  (local.tee $xa
+                    (i32.add  (i32.load (local.get $a))
+                              (local.tee $xb (i32.load (local.get $b))))))
+        (i32.const 16)))
 
     ;; x[c] = x[c] + x[d];
-    (local.set $xc (i32.add (local.get $xc) (local.get $xd)))
     ;; x[b] = (x[b] ^ x[c]) rotl 12
-    (local.set $xb (i32.rotl (i32.const 12) (i32.xor (local.get $xb) (local.get $xc))))
+    (local.set $xb 
+      (i32.rotl
+        (i32.xor  (local.get $xb)
+                  (local.tee $xc
+                    (i32.add (i32.load (local.get $c)) (local.get $xd))))
+        (i32.const 12)))
 
     ;; x[a] = x[a] + x[b];
-    (local.set $xa (i32.add (local.get $xa) (local.get $xb)))
+    (i32.store  (local.get $a)
+                (local.tee $xa (i32.add (local.get $xa) (local.get $xb))))
     ;; x[d] = (x[d] ^ x[a]) rotl 8
-    (local.set $xd (i32.rotl (i32.const 8) (i32.xor (local.get $xd) (local.get $xa))))
+    (i32.store  (local.get $d)
+                (local.tee $xd
+                  (i32.rotl
+                    (i32.xor  (local.get $xd)
+                              (local.get $xa))
+                    (i32.const 8))))
 
     ;; x[c] = x[c] + x[d];
-    (local.set $xc (i32.add (local.get $xc) (local.get $xd)))
+    (i32.store  (local.get $c)
+                (local.tee $xc (i32.add (local.get $xc) (local.get $xd))))
     ;; x[b] = (x[b] ^ x[c]) rotl 7
-    (local.set $xb (i32.rotl (i32.const 7) (i32.xor (local.get $xb) (local.get $xc))))
-
-    (i32.store (local.get $a) (local.get $xa))
-    (i32.store (local.get $b) (local.get $xb))
-    (i32.store (local.get $c) (local.get $xc))
-    (i32.store (local.get $d) (local.get $xd))
+    (i32.store  (local.get $b)
+                (i32.rotl (i32.xor (local.get $xb) (local.get $xc)) (i32.const 7)))
   )
   (func $double_round
     (call $quarter_round
@@ -122,19 +129,15 @@
     (local.set $i (i32.const 0))
     (block
       (loop
-        ;; Add context back into
-        ;; scratch data as we go
-        (local.set $t
-          (i32.add
-            (i32.load (local.get $i))
-            (i32.load
-              (i32.add
-                (i32.const 128) ;; scratch space starts at 128
-                (local.get $i)))))
-
         (i32.store8
           (local.get $j)
-          (local.get $t))
+          (local.tee $t
+            (i32.add ;; Add context back into scratch data as we go
+              (i32.load (local.get $i))
+              (i32.load
+                (i32.add
+                  (i32.const 128) ;; scratch space starts at 128
+                  (local.get $i))))))
 
         (i32.store8
           (local.tee $j (i32.add (local.get $j) (i32.const 1)))
@@ -199,10 +202,5 @@
     (call $inc_ctr)
   )
 
-  (export "copy_ctx" (func $copy_ctx))
-  (export "quarter_round" (func $quarter_round))
-  (export "double_round" (func $double_round))
-  (export "copy_out" (func $copy_out))
-  (export "inc_ctr" (func $inc_ctr))
   (export "next_bytes" (func $next_bytes))
 )

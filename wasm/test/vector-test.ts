@@ -20,8 +20,6 @@ describe("Run Standard Test Vectors", () => {
           expect(out).eql(new Uint8Array(blocks[i]));
         }
       });
-      break;
     }
-    break;
   }
 });

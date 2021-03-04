@@ -1,3 +1,15 @@
+const digits = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
+function toHex(b: Uint8Array) {
+  const a: string[] = [];
+  for (const n of b) {
+    a.push(
+      digits[n >>> 4] +
+      digits[n & 0xf] 
+    );
+  }
+  return a.join('');
+}
+
 function QUARTERROUND(x: Uint32Array, a: number, b: number, c: number, d: number) {
   let t: number;
   let xa: number;
@@ -12,10 +24,10 @@ function QUARTERROUND(x: Uint32Array, a: number, b: number, c: number, d: number
 
   t = xb ^ (xc = x[c] + xd);
   xb = t << 12 | t >>> 20;
-  
+
   t = xd ^ (xa += xb);
   xd = t << 8 | t >>> 24;
-  
+
   t = xb ^ (xc += xd);
   x[b] = t << 7 | t >>> 25;
 
@@ -28,6 +40,7 @@ const x = new Uint32Array(16);
 function shuffle(output: Uint8Array /*[64]*/, ctx: Uint32Array /*[16]*/, rounds: 8 | 12 | 20) {
   x.set(ctx);
 
+  console.log("START", toHex(new Uint8Array(x.buffer)));
   for (let i = rounds; i > 0; i -= 4) {
     QUARTERROUND(x, 0, 4,  8, 12);
     QUARTERROUND(x, 1, 5,  9, 13);
@@ -38,6 +51,7 @@ function shuffle(output: Uint8Array /*[64]*/, ctx: Uint32Array /*[16]*/, rounds:
     QUARTERROUND(x, 1, 6, 11, 12);
     QUARTERROUND(x, 2, 7,  8, 13);
     QUARTERROUND(x, 3, 4,  9, 14);
+    console.log(toHex(new Uint8Array(x.buffer)));
 
     QUARTERROUND(x, 0, 4,  8, 12);
     QUARTERROUND(x, 1, 5,  9, 13);
@@ -48,6 +62,7 @@ function shuffle(output: Uint8Array /*[64]*/, ctx: Uint32Array /*[16]*/, rounds:
     QUARTERROUND(x, 1, 6, 11, 12);
     QUARTERROUND(x, 2, 7,  8, 13);
     QUARTERROUND(x, 3, 4,  9, 14);
+    console.log(toHex(new Uint8Array(x.buffer)));
   }
 
   for (let i = 0, j = 0; i < 16; ++i) {

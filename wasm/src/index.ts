@@ -6,15 +6,6 @@ const tau = new Uint8Array(Array.from("expand 16-byte k", c => c.charCodeAt(0)))
 
 const max32bit = 2 ** 32;
 
-const digits = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
-function toHex(b: Uint8Array) {
-  const a: string[] = [];
-  for (const n of b) {
-    a.push(digits[n >>> 4], digits[n & 0xf]);
-  }
-  return a.join('');
-}
-
 export class ChaCha {
   public bytes: Uint8Array;
   public scratch: Uint8Array;
@@ -23,7 +14,7 @@ export class ChaCha {
   private constructor(
     public ctx: Uint32Array,
     mem: ArrayBuffer,
-    private shuffle: (rounds: number) => void,
+    private wasm: WebAssembly.Exports,
     private rounds: number,
   ) {
     this.ctx8 = new Uint8Array(mem, 0, 64)
@@ -34,7 +25,7 @@ export class ChaCha {
   public static async init(key: Uint8Array, rounds: 8 | 12 | 20 = 20, iv?: Uint8Array): Promise<ChaCha> {
     const module = await modulep;
     const instance = await WebAssembly.instantiate(module);
-    const { memory, next_bytes } = instance.exports;
+    const wasm = instance.exports;
 
     let k: number;
     let c: Uint8Array;
@@ -53,7 +44,7 @@ export class ChaCha {
         throw new Error("Unsupported Key Size");
     }
 
-    const membuf = (memory as unknown as WebAssembly.Memory).buffer;
+    const membuf = (wasm.memory as unknown as WebAssembly.Memory).buffer;
     const ctx = new Uint32Array(membuf, 0, 16);
     ctx[0] = c[0]  | c[1]  << 8 | c[2]  << 16 | c[3]  << 24;
     ctx[1] = c[4]  | c[5]  << 8 | c[6]  << 16 | c[7]  << 24;
@@ -73,7 +64,7 @@ export class ChaCha {
     const cc = new ChaCha(
       ctx,
       membuf,
-      next_bytes as () => void,
+      wasm,
       rounds,
     );
 
@@ -90,14 +81,9 @@ export class ChaCha {
     ctx[15] =  iv[4] | iv[5] << 8 | iv[6] << 16 | iv[7] << 24;
   }
 
+  
   next_bytes(output?: Uint8Array) {
-    console.log("PRECTX", toHex(this.ctx8));
-    console.log("PREOUT", toHex(this.bytes));
-    console.log("PREWRK", toHex(this.scratch));
-    this.shuffle(this.rounds);
-    console.log("PSTCTX", toHex(this.ctx8));
-    console.log("PSTOUT", toHex(this.bytes));
-    console.log("PSTWRK", toHex(this.scratch));
+    (this.wasm.next_bytes as any)(this.rounds);
     if (output) output.set(this.bytes);
     return this.bytes;
   }
@@ -105,7 +91,7 @@ export class ChaCha {
   * blocks() {
     const { rounds, bytes } = this;
     for (;;) {
-      this.shuffle(rounds);
+      (this.wasm.next_bytes as any)(rounds);
       yield bytes;
     }
   }
@@ -113,7 +99,7 @@ export class ChaCha {
   * [Symbol.iterator]() {
     const { rounds, bytes } = this;
     for (;;) {
-      this.shuffle(rounds);
+      (this.wasm.next_bytes as any)(rounds);
       yield * bytes;
     }
   }
