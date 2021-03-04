@@ -1,4 +1,3 @@
-
 import modulep from './wasm_loader';
 
 const sigma = new Uint8Array(Array.from("expand 32-byte k", c => c.charCodeAt(0)));
@@ -7,24 +6,15 @@ const tau = new Uint8Array(Array.from("expand 16-byte k", c => c.charCodeAt(0)))
 const max32bit = 2 ** 32;
 
 export class ChaCha {
-  public bytes: Uint8Array;
-  public scratch: Uint8Array;
-  public ctx8: Uint8Array;
-
   private constructor(
-    public ctx: Uint32Array,
-    mem: ArrayBuffer,
-    private wasm: WebAssembly.Exports,
+    private ctx: Uint32Array,
+    public bytes: Uint8Array,
+    private shuffle: (rounds: number) => void,
     private rounds: number,
-  ) {
-    this.ctx8 = new Uint8Array(mem, 0, 64)
-    this.bytes = new Uint8Array(mem, 64, 64);
-    this.scratch = new Uint8Array(mem, 128, 64);
-  }
+  ) {}
 
   public static async init(key: Uint8Array, rounds: 8 | 12 | 20 = 20, iv?: Uint8Array): Promise<ChaCha> {
-    const module = await modulep;
-    const instance = await WebAssembly.instantiate(module);
+    const instance = await WebAssembly.instantiate(await modulep);
     const wasm = instance.exports;
 
     let k: number;
@@ -44,8 +34,10 @@ export class ChaCha {
         throw new Error("Unsupported Key Size");
     }
 
-    const membuf = (wasm.memory as unknown as WebAssembly.Memory).buffer;
+    const membuf = (wasm.memory as WebAssembly.Memory).buffer;
+    const bytes = new Uint8Array(membuf, 64, 64);
     const ctx = new Uint32Array(membuf, 0, 16);
+
     ctx[0] = c[0]  | c[1]  << 8 | c[2]  << 16 | c[3]  << 24;
     ctx[1] = c[4]  | c[5]  << 8 | c[6]  << 16 | c[7]  << 24;
     ctx[2] = c[8]  | c[9]  << 8 | c[10] << 16 | c[11] << 24;
@@ -63,8 +55,8 @@ export class ChaCha {
     
     const cc = new ChaCha(
       ctx,
-      membuf,
-      wasm,
+      bytes,
+      wasm.next_bytes as any,
       rounds,
     );
 
@@ -80,10 +72,9 @@ export class ChaCha {
     ctx[14] =  iv[0] | iv[1] << 8 | iv[2] << 16 | iv[3] << 24;
     ctx[15] =  iv[4] | iv[5] << 8 | iv[6] << 16 | iv[7] << 24;
   }
-
   
   next_bytes(output?: Uint8Array) {
-    (this.wasm.next_bytes as any)(this.rounds);
+    this.shuffle(this.rounds);
     if (output) output.set(this.bytes);
     return this.bytes;
   }
@@ -91,7 +82,7 @@ export class ChaCha {
   * blocks() {
     const { rounds, bytes } = this;
     for (;;) {
-      (this.wasm.next_bytes as any)(rounds);
+      this.shuffle(rounds);
       yield bytes;
     }
   }
@@ -99,7 +90,7 @@ export class ChaCha {
   * [Symbol.iterator]() {
     const { rounds, bytes } = this;
     for (;;) {
-      (this.wasm.next_bytes as any)(rounds);
+      this.shuffle(rounds);
       yield * bytes;
     }
   }
