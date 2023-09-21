@@ -1,11 +1,12 @@
 {
   "name": "chacha-ts",
   "version": "1.0.0",
-  "description": "TypeScript implementation of the ChaCha stream cipher",
+  "description": "WASM & TypeScript implementation of the ChaCha stream cipher",
   "main": "bin/index.js",
   "files": [
     "bin/index.js",
-    "bin/index.d.ts"
+    "bin/index.d.ts",
+    "bin/wasm.js"
   ],
   "scripts": {
     "test": "npm run build && mocha -r ts-node/register test/**/*-test.ts",
